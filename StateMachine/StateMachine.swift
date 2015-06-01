@@ -62,12 +62,19 @@ public struct StateMachineSchema<A, B, C>: StateMachineSchemaType {
 public struct StateMachine<T: StateMachineSchemaType> {
     /// The current state of the machine.
     public var state: T.State
+    public typealias TransitionCallback = (T.State, T.Event, T.State) -> ()
+    public typealias TransitionSubjectCallback = (T.State, T.Event, T.State, T.Subject) -> ()
 
     /// An optional block called after a transition with three arguments:
     /// the state before the transition, the event causing the transition,
     /// and the state after the transition.
-    public var didTransitionCallback: ((T.State, T.Event, T.State) -> ())?
-
+    public var didTransitionCallback: TransitionCallback?
+    
+    private var didTransitionCallbacks: [TransitionSubjectCallback] = []
+    
+    public mutating func addTransitionCallback(callback: TransitionSubjectCallback) {
+        didTransitionCallbacks.append(callback)
+    }
     /// The schema of the state machine.  See `StateMachineSchemaType`
     /// documentation for more information.
     private let schema: T
@@ -92,6 +99,10 @@ public struct StateMachine<T: StateMachineSchemaType> {
             state = newState
             transition?(subject)
             didTransitionCallback?(oldState, event, newState)
+            
+            for callback in didTransitionCallbacks {
+                callback(oldState, event, newState, subject)
+            }
         }
     }
 }
