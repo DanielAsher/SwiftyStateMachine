@@ -70,9 +70,13 @@ public struct StateMachine<T: StateMachineSchemaType> {
     /// and the state after the transition.
     public var didTransitionCallback: TransitionCallback?
     
+    private var willTransitionCallbacks: [TransitionSubjectCallback] = []
     private var didTransitionCallbacks: [TransitionSubjectCallback] = []
     
-    public mutating func addTransitionCallback(callback: TransitionSubjectCallback) {
+    public mutating func addWillTransitionCallback(callback: TransitionSubjectCallback) {
+        willTransitionCallbacks.append(callback)
+    }
+    public mutating func addDidTransitionCallback(callback: TransitionSubjectCallback) {
         didTransitionCallbacks.append(callback)
     }
     /// The schema of the state machine.  See `StateMachineSchemaType`
@@ -97,7 +101,13 @@ public struct StateMachine<T: StateMachineSchemaType> {
         if let (newState, transition) = schema.transitionLogic(state, event) {
             let oldState = state
             state = newState
+            
+            for callback in willTransitionCallbacks {
+                callback(oldState, event, newState, subject)
+            }           
+            
             transition?(subject)
+            
             didTransitionCallback?(oldState, event, newState)
             
             for callback in didTransitionCallbacks {
