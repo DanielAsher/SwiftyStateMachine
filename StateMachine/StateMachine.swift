@@ -62,7 +62,9 @@ public struct StateMachineSchema<A, B, C>: StateMachineSchemaType {
 /// block.  It is called after a transition with three arguments:
 /// the state before the transition, the event causing the transition,
 /// and the state after the transition.
-public struct StateMachine<T: StateMachineSchemaType> {
+public class StateMachine<T: StateMachineSchemaType> {
+    private let concurrentQueue = dispatch_queue_create(
+        "com.swiftystatemachine.statemachine", DISPATCH_QUEUE_CONCURRENT)
     /// The current state of the machine.
     public var state: T.State
     public typealias TransitionCallback = (T.State, T.Event, T.State) -> ()
@@ -76,11 +78,17 @@ public struct StateMachine<T: StateMachineSchemaType> {
     private var willTransitionCallbacks: [TransitionSubjectCallback] = []
     private var didTransitionCallbacks: [TransitionSubjectCallback] = []
     
-    public mutating func addWillTransitionCallback(callback: TransitionSubjectCallback) {
-        willTransitionCallbacks.append(callback)
+    public  func addWillTransitionCallback(callback: TransitionSubjectCallback) {
+        // TODO: Verify if this dispatch_barrier_async is required 
+        dispatch_barrier_async(concurrentQueue) {
+            self.willTransitionCallbacks.append(callback)
+        }
     }
-    public mutating func addDidTransitionCallback(callback: TransitionSubjectCallback) {
-        didTransitionCallbacks.append(callback)
+    public  func addDidTransitionCallback(callback: TransitionSubjectCallback) {
+        // TODO: Verify if this dispatch_barrier_async is required 
+        dispatch_barrier_async(concurrentQueue) {
+            self.didTransitionCallbacks.append(callback)
+        }
     }
     /// The schema of the state machine.  See `StateMachineSchemaType`
     /// documentation for more information.
@@ -100,7 +108,7 @@ public struct StateMachine<T: StateMachineSchemaType> {
     /// machine.  If the transition logic of the schema defines a transition
     /// for current state and given event, the state is changed, the optional
     /// transition block is executed, and `didTransitionCallback` is called.
-    public mutating func handleEvent(event: T.Event) {
+    public func handleEvent(event: T.Event) {
         if let (newState, transition) = schema.transitionLogic(state, event) {
             let oldState = state
             state = newState
@@ -121,10 +129,9 @@ public struct StateMachine<T: StateMachineSchemaType> {
         }
     }
     
-    public mutating func handleEventAsync(event: T.Event) {
+    public func handleEventAsync(event: T.Event) {
         let priority = DISPATCH_QUEUE_PRIORITY_DEFAULT
         dispatch_async(dispatch_get_global_queue(priority, 0)) {
-        
             self.handleEvent(event)
         } 
     }
