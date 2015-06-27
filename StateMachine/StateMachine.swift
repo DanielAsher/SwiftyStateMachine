@@ -1,3 +1,6 @@
+
+import Foundation
+
 /// A type representing schema that can be reused by `StateMachine`
 /// instances.
 ///
@@ -116,5 +119,13 @@ public struct StateMachine<T: StateMachineSchemaType> {
                 callback(oldState, event, newState, subject)
             }
         }
+    }
+    
+    public mutating func handleEventAsync(event: T.Event) {
+        let priority = DISPATCH_QUEUE_PRIORITY_DEFAULT
+        dispatch_async(dispatch_get_global_queue(priority, 0)) {
+        
+            self.handleEvent(event)
+        } 
     }
 }
