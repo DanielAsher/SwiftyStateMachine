@@ -24,9 +24,9 @@ public protocol StateMachineSchemaType {
     typealias Subject
 
     var initialState: State { get }
-    var transitionLogic: (State, Event) -> (State, (Subject -> ())?)? { get }
+    var transitionLogic: (State, Event) -> (State, (Subject -> State?)?)? { get }
 
-    init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> ())?)?)
+    init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?)
 }
 
 
@@ -38,9 +38,9 @@ public struct StateMachineSchema<A, B, C>: StateMachineSchemaType {
     typealias Subject = C
 
     public let initialState: State
-    public let transitionLogic: (State, Event) -> (State, (Subject -> ())?)?
+    public let transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?
 
-    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> ())?)?) {
+    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) {
         self.initialState = initialState
         self.transitionLogic = transitionLogic
     }
@@ -106,7 +106,9 @@ public struct StateMachine<T: StateMachineSchemaType> {
                 callback(oldState, event, newState, subject)
             }           
             
-            transition?(subject)
+            if let initializedNewState = transition?(subject) {
+               state = initializedNewState 
+            }
             
             didTransitionCallback?(oldState, event, newState)
             

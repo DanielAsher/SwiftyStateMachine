@@ -41,10 +41,10 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
     typealias Subject = C
 
     public let initialState: State
-    public let transitionLogic: (State, Event) -> (State, (Subject -> ())?)?
+    public let transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?
     public let DOTDigraph: String
 
-    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> ())?)?) {
+    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) {
         self.initialState = initialState
         self.transitionLogic = transitionLogic
         self.DOTDigraph = GraphableStateMachineSchema.DOTDigraphGivenInitialState(initialState, transitionLogic: transitionLogic)
@@ -86,7 +86,7 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
     }
     #endif
 
-    private static func DOTDigraphGivenInitialState(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> ())?)?) -> String {
+    private static func DOTDigraphGivenInitialState(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) -> String {
         let states = State.DOTLabelableItems
         let events = Event.DOTLabelableItems
 
