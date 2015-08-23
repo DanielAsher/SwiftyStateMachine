@@ -129,9 +129,9 @@ public class StateMachine<T: StateMachineSchemaType> {
         }
     }
     
-    public func handleEventAsync(event: T.Event) {
+    public func handleEventAsync(event: T.Event, delay: Double = 0.0) {
         let priority = DISPATCH_QUEUE_PRIORITY_DEFAULT
-        dispatch_async(dispatch_get_global_queue(priority, 0)) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_SEC))), dispatch_get_global_queue(priority, 0)) {
             self.handleEvent(event)
         } 
     }
