@@ -121,10 +121,10 @@ public class StateMachine<T: StateMachineSchemaType> {
                state = initializedNewState 
             }
             
-            didTransitionCallback?(oldState, event, newState)
+            didTransitionCallback?(oldState, event, state)
             
             for callback in didTransitionCallbacks {
-                callback(oldState, event, newState, subject)
+                callback(oldState, event, state, subject)
             }
         }
     }
