@@ -41,13 +41,13 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
     public typealias Subject = C
 
     public let initialState: State
-    public let transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?
+    public let transitionLogic: (State, Event) -> (State, ((Subject) -> State?)?)?
     public let DOTDigraph: String
 
-    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) {
+    public init(initialState: State, transitionLogic: @escaping (State, Event) -> (State, ((Subject) -> State?)?)?) {
         self.initialState = initialState
         self.transitionLogic = transitionLogic
-        self.DOTDigraph = GraphableStateMachineSchema.DOTDigraphGivenInitialState(initialState, transitionLogic: transitionLogic)
+        self.DOTDigraph = GraphableStateMachineSchema.DOTDigraphGivenInitialState(initialState: initialState, transitionLogic: transitionLogic)
     }
 
     #if os(OSX)
@@ -78,31 +78,31 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
     ///
     ///   [1]: https://developer.apple.com/library/mac/qa/qa1361/_index.html
     ///   [2]: http://www.graphviz.org/
-    public func saveDOTDigraphIfRunningInSimulator(filepathRelativeToCurrentFile filepathRelativeToCurrentFile: String, file: String = __FILE__) {
+    public func saveDOTDigraphIfRunningInSimulator(filepathRelativeToCurrentFile: String, file: String = #file) {
         if TARGET_IPHONE_SIMULATOR == 1 {
-            let filepath = ((file as NSString).stringByDeletingLastPathComponent as NSString).stringByAppendingPathComponent(filepathRelativeToCurrentFile)
-            try! DOTDigraph.writeToFile(filepath, atomically: true, encoding: NSUTF8StringEncoding)
+            let filepath = ((file as NSString).deletingLastPathComponent as NSString).appendingPathComponent(filepathRelativeToCurrentFile)
+            try! DOTDigraph.write(toFile: filepath, atomically: true, encoding: String.Encoding.utf8)
         }
     }
     #endif
 
-    private static func DOTDigraphGivenInitialState(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) -> String {
+    private static func DOTDigraphGivenInitialState(initialState: State, transitionLogic: (State, Event) -> (State, ((Subject) -> State?)?)?) -> String {
         let states = State.DOTLabelableItems
         let events = Event.DOTLabelableItems
 
         var stateIndexesByLabel: [String: Int] = [:]
-        for (i, state) in states.enumerate() {
-            stateIndexesByLabel[label(state)] = i + 1
+        for (i, state) in states.enumerated() {
+            stateIndexesByLabel[label(x: state)] = i + 1
         }
 
         func index(state: State) -> Int {
-            return stateIndexesByLabel[label(state)]!
+            return stateIndexesByLabel[label(x: state)]!
         }
 
-        var digraph = "digraph {\n    graph [rankdir=LR]\n\n    0 [label=\"\", shape=plaintext]\n    0 -> \(index(initialState)) [label=\"START\"]\n\n"
+        var digraph = "digraph {\n    graph [rankdir=LR]\n\n    0 [label=\"\", shape=plaintext]\n    0 -> \(index(state: initialState)) [label=\"START\"]\n\n"
 
         for state in states {
-            digraph += "    \(index(state)) [label=\"\(label(state))\"]\n"
+            digraph += "    \(index(state: state)) [label=\"\(label(x: state))\"]\n"
         }
 
         digraph += "\n"
@@ -110,7 +110,7 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
         for fromState in states {
             for event in events {
                 if let (toState, _) = transitionLogic(fromState, event) {
-                    digraph += "    \(index(fromState)) -> \(index(toState)) [label=\"\(label(event))\"]\n"
+                    digraph += "    \(index(state: fromState)) -> \(index(state: toState)) [label=\"\(label(x: event))\"]\n"
                 }
             }
         }
@@ -124,5 +124,5 @@ public struct GraphableStateMachineSchema<A: DOTLabelable, B: DOTLabelable, C>: 
 
 /// Helper function used when generating DOT digraph strings.
 private func label<T: DOTLabelable>(x: T) -> String {
-    return x.DOTLabel.stringByReplacingOccurrencesOfString("\"", withString: "\\\"", options: .LiteralSearch, range: nil)
+    return x.DOTLabel.replacingOccurrences(of: "\"", with: "\\\"", options: .literal, range: nil)
 }

@@ -22,28 +22,29 @@ import Foundation
 /// transition.  The transition block is optional and it gets passed
 /// the `Subject` object as an argument.
 public protocol StateMachineSchemaType {
-    typealias State
-    typealias Event
-    typealias Subject
+    associatedtype State
+    associatedtype Event
+    associatedtype Subject
 
     var initialState: State { get }
-    var transitionLogic: (State, Event) -> (State, (Subject -> State?)?)? { get }
+    var transitionLogic: (State, Event) -> (State, ((Subject) -> State?)?)? { get }
 
-    init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?)
+    init(initialState: State, transitionLogic: @escaping (State, Event) -> (State, ((Subject) -> State?)?)?)
 }
 
 
 /// A state machine schema conforming to the `StateMachineSchemaType`
 /// protocol.  See protocol documentation for more information.
 public struct StateMachineSchema<A, B, C>: StateMachineSchemaType {
+
     public typealias State = A
     public typealias Event = B
     public typealias Subject = C
 
     public let initialState: State
-    public let transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?
+    public let transitionLogic: (State, Event) -> (State, ((Subject) -> State?)?)?
 
-    public init(initialState: State, transitionLogic: (State, Event) -> (State, (Subject -> State?)?)?) {
+    public init(initialState: State, transitionLogic: @escaping (State, Event) -> (State, ((Subject) -> State?)?)?) {
         self.initialState = initialState
         self.transitionLogic = transitionLogic
     }
@@ -63,8 +64,8 @@ public struct StateMachineSchema<A, B, C>: StateMachineSchemaType {
 /// the state before the transition, the event causing the transition,
 /// and the state after the transition.
 public class StateMachine<T: StateMachineSchemaType> {
-    private let concurrentQueue = dispatch_queue_create(
-        "com.swiftystatemachine.statemachine", DISPATCH_QUEUE_CONCURRENT)
+//    private let concurrentQueue = dispatch_queue_create(
+//        "com.swiftystatemachine.statemachine", DISPATCH_QUEUE_CONCURRENT)
     /// The current state of the machine.
     public var state: T.State
     public typealias TransitionCallback = (T.State, T.Event, T.State) -> ()
@@ -78,17 +79,19 @@ public class StateMachine<T: StateMachineSchemaType> {
     private var willTransitionCallbacks: [TransitionSubjectCallback] = []
     private var didTransitionCallbacks: [TransitionSubjectCallback] = []
     
-    public  func addWillTransitionCallback(callback: TransitionSubjectCallback) {
+    public  func addWillTransitionCallback(callback: @escaping TransitionSubjectCallback) {
+        //FIXME: SWIFT-3
         // TODO: Verify if this dispatch_barrier_async is required 
-        dispatch_barrier_async(concurrentQueue) {
+//        dispatch_barrier_async(concurrentQueue) {
             self.willTransitionCallbacks.append(callback)
-        }
+//        }
     }
-    public  func addDidTransitionCallback(callback: TransitionSubjectCallback) {
+    public  func addDidTransitionCallback(callback: @escaping TransitionSubjectCallback) {
+        //FIXME: SWIFT-3
         // TODO: Verify if this dispatch_barrier_async is required 
-        dispatch_barrier_async(concurrentQueue) {
+//        dispatch_barrier_async(concurrentQueue) {
             self.didTransitionCallbacks.append(callback)
-        }
+//        }
     }
     /// The schema of the state machine.  See `StateMachineSchemaType`
     /// documentation for more information.
@@ -130,9 +133,10 @@ public class StateMachine<T: StateMachineSchemaType> {
     }
     
     public func handleEventAsync(event: T.Event, delay: Double = 0.0) {
-        let priority = DISPATCH_QUEUE_PRIORITY_DEFAULT
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_SEC))), dispatch_get_global_queue(priority, 0)) {
-            self.handleEvent(event)
+        //FIXME: SWIFT-3
+//        let priority = DispatchQueue.GlobalQueuePriority.default
+//        dispatch_after(dispatch_time(dispatch_time_t(DISPATCH_TIME_NOW), Int64(delay * Double(NSEC_PER_SEC))), dispatch_get_global_queue(priority, 0)) {
+            self.handleEvent(event: event)
         } 
-    }
+//    }
 }
